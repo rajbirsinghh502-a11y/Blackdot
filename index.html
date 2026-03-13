@@ -1,1520 +1,2089 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Blackdot — Ghost AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
-<style>
-/*══════════════════════════════════════════════
-  ROOT & RESET
-══════════════════════════════════════════════*/
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#01030a;
-  --bg2:#040810;
-  --bg3:#060b16;
-  --card:rgba(6,14,32,0.75);
-  --cyan:#00e5ff;
-  --cyan2:#00b4d8;
-  --cyan-glow:rgba(0,229,255,0.35);
-  --cyan-dim:rgba(0,229,255,0.08);
-  --ghost:#a855f7;
-  --ghost-glow:rgba(168,85,247,0.4);
-  --ghost-dim:rgba(168,85,247,0.1);
-  --red:#ff3366;
-  --white:#dff0ff;
-  --muted:#3a5570;
-  --muted2:#6a8aaa;
-  --border:rgba(0,229,255,0.1);
-  --border2:rgba(168,85,247,0.15);
-}
-html{scroll-behavior:smooth}
-body{
-  background:var(--bg);
-  color:var(--white);
-  font-family:'Rajdhani',sans-serif;
-  font-weight:400;
-  overflow-x:hidden;
-  cursor:none;
-}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ghost AI — Blackdot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-/*══════════════════════════════════════════════
-  CURSOR
-══════════════════════════════════════════════*/
-#cur{
-  position:fixed;width:9px;height:9px;border-radius:50%;
-  background:var(--cyan);pointer-events:none;z-index:9999;
-  transform:translate(-50%,-50%);
-  box-shadow:0 0 10px var(--cyan),0 0 22px var(--cyan-glow);
-  transition:width .18s,height .18s,background .2s;
-}
-#cur-r{
-  position:fixed;width:34px;height:34px;
-  border:1px solid rgba(0,229,255,0.4);border-radius:50%;
-  pointer-events:none;z-index:9998;
-  transform:translate(-50%,-50%);
-  transition:all .32s cubic-bezier(.23,1,.32,1);
-}
+  <style>
+    /* =====================================================
+       CSS CUSTOM PROPERTIES (DESIGN TOKENS)
+    ===================================================== */
+    :root {
+      --cyan:        #00f5ff;
+      --cyan-dim:    #00c8d4;
+      --cyan-glow:   rgba(0, 245, 255, 0.18);
+      --cyan-border: rgba(0, 245, 255, 0.35);
+      --bg-black:    #020408;
+      --bg-dark:     #050d14;
+      --bg-card:     rgba(0, 245, 255, 0.04);
+      --text-white:  #e8f4f8;
+      --text-dim:    #7a9aaa;
+      --font-head:   'Orbitron', sans-serif;
+      --font-body:   'Rajdhani', sans-serif;
+      --transition:  0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-/*══════════════════════════════════════════════
-  CANVAS
-══════════════════════════════════════════════*/
-#bgc{
-  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
-}
+    /* =====================================================
+       RESET & BASE
+    ===================================================== */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-/*══════════════════════════════════════════════
-  GRAIN
-══════════════════════════════════════════════*/
-body::after{
-  content:'';position:fixed;inset:0;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.045'/%3E%3C/svg%3E");
-  pointer-events:none;z-index:2;opacity:.6;
-}
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+    }
 
-/*══════════════════════════════════════════════
-  SCANLINES
-══════════════════════════════════════════════*/
-body::before{
-  content:'';position:fixed;inset:0;z-index:1;pointer-events:none;
-  background:repeating-linear-gradient(
-    to bottom,
-    transparent 0px,
-    transparent 2px,
-    rgba(0,0,0,.04) 2px,
-    rgba(0,0,0,.04) 4px
-  );
-}
+    body {
+      background: var(--bg-black);
+      color: var(--text-white);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      cursor: none;
+    }
 
-/*══════════════════════════════════════════════
-  MULTI-PAGE SYSTEM
-══════════════════════════════════════════════*/
-.page{
-  display:none;min-height:100vh;position:relative;z-index:10;
-  animation:pgIn .5s ease forwards;
-}
-.page.active{display:block;}
-@keyframes pgIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
 
-/*══════════════════════════════════════════════
-  NAV
-══════════════════════════════════════════════*/
-nav{
-  position:fixed;top:0;left:0;right:0;z-index:600;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:1.3rem 3.5rem;
-  background:linear-gradient(to bottom,rgba(1,3,10,.97) 80%,transparent);
-  backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
-}
-.nav-logo{display:flex;align-items:center;gap:.7rem;cursor:none;text-decoration:none}
-.nav-logo-dot{
-  width:22px;height:22px;border-radius:50%;
-  background:radial-gradient(circle at 38% 35%,#80ffff 0%,var(--cyan) 45%,#005f77 100%);
-  box-shadow:0 0 14px var(--cyan),0 0 32px var(--cyan-glow);
-  flex-shrink:0;
-  animation:pulseDot 3s ease-in-out infinite;
-}
-@keyframes pulseDot{
-  0%,100%{box-shadow:0 0 14px var(--cyan),0 0 32px var(--cyan-glow)}
-  50%{box-shadow:0 0 22px var(--cyan),0 0 56px var(--cyan-glow),0 0 80px rgba(0,229,255,.2)}
-}
-.nav-brand{
-  font-family:'Orbitron',monospace;font-weight:700;
-  font-size:.9rem;letter-spacing:.22em;color:var(--white);
-}
-.nav-links{display:flex;gap:0;list-style:none}
-.nav-links a{
-  font-family:'Share Tech Mono',monospace;font-size:.75rem;
-  letter-spacing:.1em;text-transform:uppercase;
-  color:var(--muted2);text-decoration:none;
-  padding:.5rem 1rem;
-  transition:color .2s;position:relative;
-  cursor:none;
-}
-.nav-links a::after{
-  content:'';position:absolute;bottom:0;left:50%;right:50%;height:1px;
-  background:var(--cyan);transition:left .25s,right .25s;
-}
-.nav-links a:hover{color:var(--cyan)}
-.nav-links a:hover::after{left:1rem;right:1rem}
-.nav-links a.active-link{color:var(--cyan)}
-.nav-links a.active-link::after{left:1rem;right:1rem}
-.nav-cta{
-  font-family:'Share Tech Mono',monospace;font-size:.72rem;
-  letter-spacing:.12em;text-transform:uppercase;
-  color:var(--bg);background:var(--cyan);
-  border:none;padding:.55rem 1.5rem;cursor:none;
-  clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
-  transition:box-shadow .25s,transform .2s;
-}
-.nav-cta:hover{
-  box-shadow:0 0 20px var(--cyan-glow),0 0 40px var(--cyan-glow);
-  transform:scale(1.04);
-}
+    ul {
+      list-style: none;
+    }
 
-  /*══════════════════════════════════════════════
-  BLACKDOT IMAGE LOGO STAMP
-══════════════════════════════════════════════*/
+    img {
+      display: block;
+      max-width: 100%;
+    }
 
-.bd-stamp{
-  display:flex;
-  align-items:center;
-  gap:.9rem;
-  margin-bottom:1.5rem;
-}
+    /* =====================================================
+       CUSTOM CURSOR
+    ===================================================== */
+    #cursor-dot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 8px;
+      height: 8px;
+      background: var(--cyan);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 12px var(--cyan), 0 0 24px var(--cyan);
+      transition: width 0.15s, height 0.15s, background 0.15s;
+    }
 
-/* logo container */
+    #cursor-ring {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 36px;
+      height: 36px;
+      border: 1.5px solid var(--cyan-border);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s, width 0.2s, height 0.2s, border-color 0.2s;
+      box-shadow: 0 0 8px var(--cyan-glow), inset 0 0 8px var(--cyan-glow);
+    }
 
-.bd-logo-box{
-  width:40px;
-  height:40px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  perspective:800px;
-}
+    body:has(a:hover) #cursor-dot,
+    body:has(button:hover) #cursor-dot {
+      width: 12px;
+      height: 12px;
+    }
 
-/* logo image */
+    /* =====================================================
+       PARTICLE CANVAS BACKGROUND
+    ===================================================== */
+    #particle-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
 
-.bd-logo{
-  width:100%;
-  height:100%;
-  object-fit:contain;
+    /* =====================================================
+       NAVBAR
+    ===================================================== */
+    #navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 100;
+      padding: 20px 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: transparent;
+      transition: background var(--transition), padding var(--transition), backdrop-filter var(--transition);
+    }
 
-  filter:
-    grayscale(40%)
-    brightness(1.4)
-    drop-shadow(0 0 8px rgba(220,220,220,0.9))
-    drop-shadow(0 0 18px rgba(255,255,255,0.5));
+    #navbar.scrolled {
+      background: rgba(2, 4, 8, 0.85);
+      backdrop-filter: blur(18px);
+      padding: 14px 60px;
+      border-bottom: 1px solid var(--cyan-border);
+    }
 
-  transform-style:preserve-3d;
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-  animation:logoSpin 6s linear infinite;
-}
+    .nav-logo img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px var(--cyan));
+    }
 
-/* text */
+    .nav-logo-text {
+      font-family: var(--font-head);
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      text-shadow: 0 0 16px var(--cyan);
+    }
 
-.bd-stamp-text{
-  font-family:'Orbitron',monospace;
-  font-weight:600;
-  font-size:.75rem;
-  letter-spacing:.28em;
-  color:var(--cyan);
-  text-transform:uppercase;
-  opacity:.85;
-}
+    .nav-logo-sub {
+      font-family: var(--font-body);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      margin-top: -2px;
+    }
 
-/* 3D rotation */
+    .nav-links {
+      display: flex;
+      gap: 40px;
+    }
 
-@keyframes logoSpin{
+    .nav-links a {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      position: relative;
+      transition: color var(--transition);
+    }
 
-  0%{
-    transform:rotateY(0deg);
-  }
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      transition: width var(--transition);
+    }
 
-  100%{
-    transform:rotateY(360deg);
-  }
+    .nav-links a:hover {
+      color: var(--cyan);
+    }
 
-  }
-/*══════════════════════════════════════════════
-  SECTION SHELL
-══════════════════════════════════════════════*/
-.section{
-  padding:7rem 0 5rem;
-  max-width:1200px;margin:0 auto;padding-left:3.5rem;padding-right:3.5rem;
-}
-.section-inner{padding-top:6rem}
+    .nav-links a:hover::after {
+      width: 100%;
+    }
 
-/*══════════════════════════════════════════════
-  ░░░  PAGE 1 — HOME / HERO  ░░░
-══════════════════════════════════════════════*/
-.hero{
-  min-height:100vh;display:flex;align-items:center;justify-content:center;
-  flex-direction:column;text-align:center;
-  padding:0 3rem;position:relative;overflow:hidden;
-}
-.hero-grid{
-  position:absolute;inset:0;
-  background-image:
-    linear-gradient(rgba(0,229,255,0.04) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,229,255,0.04) 1px,transparent 1px);
-  background-size:60px 60px;
-  mask-image:radial-gradient(ellipse at center,black 20%,transparent 80%);
-}
-.hero-ring{
-  position:absolute;width:700px;height:700px;
-  border:1px solid rgba(0,229,255,0.07);
-  border-radius:50%;top:50%;left:50%;
-  transform:translate(-50%,-50%);
-  animation:ringRotate 25s linear infinite;
-}
-.hero-ring:nth-child(2){width:900px;height:900px;animation-duration:40s;animation-direction:reverse;border-color:rgba(168,85,247,0.07)}
-.hero-ring:nth-child(3){width:550px;height:550px;animation-duration:18s;border-color:rgba(0,229,255,0.1)}
-@keyframes ringRotate{to{transform:translate(-50%,-50%) rotate(360deg)}}
-.hero-glow{
-  position:absolute;width:500px;height:500px;
-  background:radial-gradient(ellipse,rgba(0,229,255,0.1) 0%,transparent 70%);
-  top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;
-}
-.hero-ghost-glow{
-  position:absolute;width:400px;height:400px;
-  background:radial-gradient(ellipse,rgba(168,85,247,0.08) 0%,transparent 70%);
-  top:40%;left:50%;transform:translate(-50%,-50%);pointer-events:none;
-}
-.hero-eyebrow{
-  font-family:'Share Tech Mono',monospace;font-size:.78rem;
-  letter-spacing:.35em;text-transform:uppercase;
-  color:var(--cyan);margin-bottom:2.5rem;
-  animation:fadeUp .8s .3s both;
-}
-.hero h1{
-  font-family:'Orbitron',monospace;font-weight:900;
-  font-size:clamp(2.4rem,6vw,5.2rem);
-  line-height:1.06;letter-spacing:-.01em;
-  margin-bottom:1.8rem;
-  animation:fadeUp .8s .5s both;
-}
-.hero h1 .ghost-word{
-  display:block;
-  background:linear-gradient(135deg,var(--cyan) 0%,var(--ghost) 60%,var(--cyan) 100%);
-  background-size:200% auto;
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  animation:shimmer 4s linear infinite, fadeUp .8s .5s both;
-}
-@keyframes shimmer{to{background-position:200% center}}
-.hero-sub{
-  font-size:1.18rem;font-weight:400;color:var(--muted2);
-  max-width:580px;line-height:1.75;
-  margin-bottom:3rem;
-  animation:fadeUp .8s .7s both;
-}
-.hero-btns{
-  display:flex;gap:1.2rem;justify-content:center;flex-wrap:wrap;
-  animation:fadeUp .8s .9s both;
-}
-.btn-primary{
-  font-family:'Share Tech Mono',monospace;font-size:.82rem;
-  letter-spacing:.12em;text-transform:uppercase;
-  color:var(--bg);background:var(--cyan);border:none;
-  padding:.85rem 2.4rem;cursor:none;
-  clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
-  transition:box-shadow .25s,transform .2s;
-}
-.btn-primary:hover{
-  box-shadow:0 0 28px var(--cyan-glow),0 0 60px rgba(0,229,255,.2);
-  transform:translateY(-2px);
-}
-.btn-ghost{
-  font-family:'Share Tech Mono',monospace;font-size:.82rem;
-  letter-spacing:.12em;text-transform:uppercase;
-  color:var(--ghost);background:transparent;
-  border:1px solid rgba(168,85,247,0.4);
-  padding:.85rem 2.4rem;cursor:none;
-  clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
-  transition:all .25s;
-}
-.btn-ghost:hover{
-  background:var(--ghost-dim);
-  border-color:var(--ghost);
-  box-shadow:0 0 24px var(--ghost-glow);
-}
-.hero-scroll{
-  position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);
-  display:flex;flex-direction:column;align-items:center;gap:.5rem;
-  animation:fadeUp .8s 1.2s both;
-}
-.hero-scroll span{
-  font-family:'Share Tech Mono',monospace;font-size:.68rem;
-  letter-spacing:.2em;color:var(--muted);
-}
-.scroll-line{
-  width:1px;height:40px;
-  background:linear-gradient(to bottom,var(--cyan),transparent);
-  animation:scrollPulse 2s ease-in-out infinite;
-}
-@keyframes scrollPulse{0%,100%{opacity:.3;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.15)}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    .nav-cta {
+      font-family: var(--font-head);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 10px 24px;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      border-radius: 2px;
+      transition: background var(--transition), box-shadow var(--transition);
+    }
 
-/*══════════════════════════════════════════════
-  ░░░  PAGE 2 — ABOUT  ░░░
-══════════════════════════════════════════════*/
-.about-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;
-  padding-top:6rem;
-}
-.about-visual{
-  position:relative;display:flex;align-items:center;justify-content:center;
-  height:400px;
-}
-.about-orb{
-  width:220px;height:220px;border-radius:50%;
-  background:radial-gradient(circle at 40% 38%,rgba(0,229,255,0.25),rgba(168,85,247,0.15) 50%,transparent 80%);
-  border:1px solid rgba(0,229,255,0.2);
-  box-shadow:0 0 60px rgba(0,229,255,0.1),0 0 120px rgba(168,85,247,0.08);
-  animation:orbFloat 6s ease-in-out infinite;
-}
-@keyframes orbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
-.about-orb-inner{
-  position:absolute;width:130px;height:130px;border-radius:50%;
-  background:radial-gradient(circle at 40% 38%,rgba(0,229,255,0.5) 0%,rgba(168,85,247,0.3) 60%,transparent);
-  box-shadow:0 0 30px var(--cyan-glow);
-  animation:orbFloat 6s ease-in-out infinite reverse;
-}
-.about-lines{
-  position:absolute;inset:0;pointer-events:none;
-}
-.a-ring{
-  position:absolute;border-radius:50%;border:1px solid;
-  top:50%;left:50%;transform:translate(-50%,-50%);
-}
-.a-ring:nth-child(1){width:260px;height:260px;border-color:rgba(0,229,255,0.08);animation:ringRotate 20s linear infinite}
-.a-ring:nth-child(2){width:310px;height:310px;border-color:rgba(168,85,247,0.07);animation:ringRotate 30s linear infinite reverse}
-.a-ring:nth-child(3){width:370px;height:370px;border-color:rgba(0,229,255,0.05);animation:ringRotate 45s linear infinite}
+    .nav-cta:hover {
+      background: var(--cyan-glow);
+      box-shadow: 0 0 20px var(--cyan-glow), inset 0 0 20px var(--cyan-glow);
+    }
 
-.about-text h2{
-  font-family:'Orbitron',monospace;font-weight:700;
-  font-size:clamp(1.8rem,3vw,2.6rem);
-  line-height:1.2;margin-bottom:1.4rem;
-}
-.about-text h2 em{
-  font-style:normal;color:var(--cyan);
-}
-.about-text p{
-  color:var(--muted2);font-size:1.05rem;line-height:1.8;
-  margin-bottom:1rem;font-weight:400;
-}
-.about-stats{
-  display:flex;gap:2rem;margin-top:2.2rem;flex-wrap:wrap;
-}
-.stat{border-left:2px solid var(--cyan);padding:.3rem 0 .3rem 1rem}
-.stat-n{
-  font-family:'Orbitron',monospace;font-size:1.7rem;
-  font-weight:700;color:var(--cyan);line-height:1;
-}
-.stat-l{font-size:.8rem;letter-spacing:.12em;color:var(--muted2);text-transform:uppercase;margin-top:.25rem}
+    .nav-hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 4px;
+    }
 
-/*══════════════════════════════════════════════
-  ░░░  PAGE 3 — GHOST AI  ░░░
-══════════════════════════════════════════════*/
-.ghost-hero{
-  text-align:center;padding-top:6rem;position:relative;
-}
-.ghost-logo{
-  position:relative;display:inline-block;margin-bottom:3rem;
-}
-.ghost-circle{
-  width:180px;height:180px;border-radius:50%;margin:0 auto;
-  background:radial-gradient(circle at 42% 40%,rgba(168,85,247,0.6) 0%,rgba(0,229,255,0.2) 50%,transparent 80%);
-  border:1px solid rgba(168,85,247,0.35);
-  box-shadow:0 0 60px var(--ghost-glow),0 0 120px rgba(168,85,247,0.15);
-  display:flex;align-items:center;justify-content:center;
-  animation:orbFloat 5s ease-in-out infinite;
-  position:relative;
-}
-.ghost-g{
-  font-family:'Orbitron',monospace;font-weight:900;font-size:4.5rem;
-  background:linear-gradient(135deg,var(--ghost) 0%,var(--cyan) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.ghost-ring-wrap{
-  position:absolute;inset:-40px;
-  border-radius:50%;border:1px solid rgba(168,85,247,0.15);
-  animation:ringRotate 12s linear infinite;
-}
-.ghost-ring-wrap::after{
-  content:'';position:absolute;width:8px;height:8px;border-radius:50%;
-  background:var(--ghost);top:-4px;left:50%;transform:translateX(-50%);
-  box-shadow:0 0 12px var(--ghost-glow);
-}
-.ghost-hero h2{
-  font-family:'Orbitron',monospace;font-weight:800;
-  font-size:clamp(2rem,4vw,3.2rem);margin-bottom:1.2rem;
-}
-.ghost-hero p{
-  color:var(--muted2);font-size:1.1rem;max-width:680px;
-  margin:0 auto 2.5rem;line-height:1.8;
-}
-/* AI Models grid */
-.models-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:1.4rem;margin-top:3.5rem;
-}
-.model-card{
-  background:var(--card);border:1px solid var(--border2);
-  padding:1.8rem;position:relative;overflow:hidden;
-  transition:border-color .3s,transform .3s,box-shadow .3s;
-}
-.model-card::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,var(--ghost-dim) 0%,transparent 60%);
-  opacity:0;transition:opacity .3s;
-}
-.model-card:hover{
-  border-color:rgba(168,85,247,0.5);
-  transform:translateY(-5px);
-  box-shadow:0 20px 40px rgba(0,0,0,.4),0 0 30px var(--ghost-glow);
-}
-.model-card:hover::before{opacity:1}
-.model-card-icon{
-  font-family:'Orbitron',monospace;font-size:.7rem;font-weight:700;
-  letter-spacing:.2em;color:var(--ghost);margin-bottom:.8rem;
-  display:flex;align-items:center;gap:.6rem;
-}
-.model-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:var(--ghost);
-  box-shadow:0 0 8px var(--ghost-glow);
-  animation:pulseDot 2s ease-in-out infinite;
-}
-.model-card h4{
-  font-family:'Orbitron',monospace;font-weight:600;font-size:.9rem;
-  color:var(--white);margin-bottom:.6rem;
-}
-.model-card p{color:var(--muted2);font-size:.9rem;line-height:1.65}
-.model-tag{
-  display:inline-block;margin-top:.9rem;
-  font-family:'Share Tech Mono',monospace;font-size:.68rem;
-  letter-spacing:.12em;text-transform:uppercase;
-  color:var(--cyan);border:1px solid rgba(0,229,255,0.25);
-  padding:.25rem .7rem;
-}
+    .nav-hamburger span {
+      display: block;
+      width: 26px;
+      height: 2px;
+      background: var(--cyan);
+      transition: all var(--transition);
+    }
 
-/*══════════════════════════════════════════════
-  ░░░  PAGE 4 — FEATURES  ░░░
-══════════════════════════════════════════════*/
-.features-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;
-  padding-top:6rem;
-}
-.feat-card{
-  background:var(--card);
-  border:1px solid var(--border);
-  padding:2rem;
-  position:relative;overflow:hidden;
-  transition:all .3s;
-}
-.feat-card::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
-  transform:scaleX(0);transition:transform .4s;
-}
-.feat-card:hover{
-  border-color:rgba(0,229,255,0.3);
-  transform:translateY(-6px);
-  box-shadow:0 24px 48px rgba(0,0,0,.5),0 0 24px rgba(0,229,255,.08);
-}
-.feat-card:hover::after{transform:scaleX(1)}
-.feat-num{
-  font-family:'Share Tech Mono',monospace;font-size:.7rem;
-  color:var(--muted);letter-spacing:.15em;margin-bottom:1.4rem;
-}
-.feat-icon{
-  width:42px;height:42px;border-radius:2px;
-  background:var(--cyan-dim);border:1px solid rgba(0,229,255,0.2);
-  display:flex;align-items:center;justify-content:center;
-  margin-bottom:1.2rem;font-size:1.1rem;
-}
-.feat-card h3{
-  font-family:'Orbitron',monospace;font-weight:600;font-size:.9rem;
-  color:var(--white);margin-bottom:.7rem;letter-spacing:.03em;
-}
-.feat-card p{color:var(--muted2);font-size:.92rem;line-height:1.7}
-.feat-line{
-  position:absolute;bottom:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(0,229,255,0.15),transparent);
-}
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: rgba(2, 4, 8, 0.97);
+      z-index: 99;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 36px;
+    }
 
-/*══════════════════════════════════════════════
-  ░░░  PAGE 5 — VISION  ░══
-══════════════════════════════════════════════*/
-.vision-layout{
-  display:grid;grid-template-columns:1fr 1.3fr;gap:5rem;align-items:start;
-  padding-top:6rem;
-}
-.vision-timeline{display:flex;flex-direction:column;gap:0}
-.tl-item{
-  display:flex;gap:1.4rem;position:relative;padding-bottom:2.5rem;
-}
-.tl-item:not(:last-child)::before{
-  content:'';position:absolute;left:12px;top:26px;bottom:0;
-  width:1px;background:linear-gradient(to bottom,rgba(0,229,255,0.3),rgba(168,85,247,0.3),transparent);
-}
-.tl-dot{
-  width:26px;height:26px;border-radius:50%;flex-shrink:0;margin-top:2px;
-  border:2px solid var(--cyan);
-  background:var(--bg);
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 12px var(--cyan-glow);
-}
-.tl-dot-inner{width:8px;height:8px;border-radius:50%;background:var(--cyan)}
-.tl-content{}
-.tl-year{
-  font-family:'Share Tech Mono',monospace;font-size:.72rem;
-  color:var(--cyan);letter-spacing:.2em;margin-bottom:.3rem;
-}
-.tl-content h4{
-  font-family:'Orbitron',monospace;font-weight:600;font-size:.88rem;
-  color:var(--white);margin-bottom:.4rem;
-}
-.tl-content p{color:var(--muted2);font-size:.9rem;line-height:1.65}
+    .mobile-menu.open {
+      display: flex;
+    }
 
-.vision-right h2{
-  font-family:'Orbitron',monospace;font-weight:700;
-  font-size:clamp(1.8rem,2.8vw,2.4rem);
-  line-height:1.2;margin-bottom:1.4rem;
-}
-.vision-right h2 em{font-style:normal;color:var(--ghost)}
-.vision-right p{color:var(--muted2);font-size:1.02rem;line-height:1.8;margin-bottom:1rem}
-.vision-tags{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.8rem}
-.vtag{
-  font-family:'Share Tech Mono',monospace;font-size:.72rem;
-  letter-spacing:.12em;color:var(--ghost);
-  border:1px solid rgba(168,85,247,0.3);padding:.35rem .9rem;
-  transition:all .25s;
-}
-.vtag:hover{background:var(--ghost-dim);border-color:var(--ghost)}
+    .mobile-menu a {
+      font-family: var(--font-head);
+      font-size: 1.3rem;
+      letter-spacing: 0.2em;
+      color: var(--text-white);
+      transition: color var(--transition);
+    }
 
-/*══════════════════════════════════════════════
-  ░░░  PAGE 6 — LAUNCH  ░░░
-══════════════════════════════════════════════*/
-.launch-center{
-  text-align:center;padding-top:6rem;
-}
-.launch-center h2{
-  font-family:'Orbitron',monospace;font-weight:800;
-  font-size:clamp(2rem,4vw,3.4rem);
-  margin-bottom:1rem;
-}
-.launch-center .launch-sub{
-  color:var(--muted2);font-size:1.08rem;max-width:520px;
-  margin:0 auto 3.5rem;line-height:1.75;
-}
-.countdown{
-  display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;
-  margin-bottom:3.5rem;
-}
-.cd-unit{
-  display:flex;flex-direction:column;align-items:center;
-  min-width:110px;
-}
-.cd-box{
-  width:110px;height:110px;
-  background:var(--card);
-  border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-  position:relative;overflow:hidden;
-  margin-bottom:.7rem;
-}
-.cd-box::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,var(--cyan-dim) 0%,transparent 60%);
-}
-.cd-box::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
-}
-.cd-num{
-  font-family:'Orbitron',monospace;font-weight:700;font-size:2.6rem;
-  color:var(--cyan);
-  text-shadow:0 0 20px var(--cyan-glow);
-  position:relative;z-index:1;
-}
-.cd-label{
-  font-family:'Share Tech Mono',monospace;font-size:.68rem;
-  letter-spacing:.2em;color:var(--muted2);text-transform:uppercase;
-}
-.cd-sep{
-  font-family:'Orbitron',monospace;font-size:2rem;
-  color:rgba(0,229,255,0.25);align-self:center;margin-bottom:1.5rem;
-}
-.launch-status{
-  display:inline-flex;align-items:center;gap:.7rem;
-  font-family:'Share Tech Mono',monospace;font-size:.75rem;
-  letter-spacing:.15em;color:var(--muted2);
-  border:1px solid var(--border);padding:.6rem 1.4rem;
-  margin-bottom:1.5rem;
-}
-.status-dot{
-  width:7px;height:7px;border-radius:50%;background:var(--cyan);
-  box-shadow:0 0 8px var(--cyan);animation:pulseDot 2s infinite;
-}
+    .mobile-menu a:hover {
+      color: var(--cyan);
+    }
 
-/*══════════════════════════════════════════════
-  ░░░  PAGE 7 — WAITLIST  ░░░
-══════════════════════════════════════════════*/
-.waitlist-center{
-  text-align:center;padding-top:6rem;max-width:720px;margin:0 auto;
-}
-.waitlist-center h2{
-  font-family:'Orbitron',monospace;font-weight:800;
-  font-size:clamp(2rem,4vw,3rem);margin-bottom:1rem;
-}
-.waitlist-center h2 em{font-style:normal;color:var(--cyan)}
-.waitlist-center p{
-  color:var(--muted2);font-size:1.08rem;line-height:1.8;margin-bottom:2.8rem;
-}
-.waitlist-form{
-  display:flex;gap:0;max-width:560px;margin:0 auto 2.5rem;
-}
-.wf-input{
-  flex:1;background:rgba(6,14,32,0.9);
-  border:1px solid rgba(0,229,255,0.2);border-right:none;
-  color:var(--white);font-family:'Rajdhani',sans-serif;font-size:.95rem;
-  padding:.9rem 1.4rem;outline:none;
-  transition:border-color .25s;
-}
-.wf-input::placeholder{color:var(--muted)}
-.wf-input:focus{border-color:rgba(0,229,255,0.5)}
-.wf-btn{
-  font-family:'Share Tech Mono',monospace;font-size:.78rem;
-  letter-spacing:.1em;text-transform:uppercase;
-  color:var(--bg);background:var(--cyan);border:none;
-  padding:.9rem 1.8rem;cursor:none;white-space:nowrap;
-  transition:box-shadow .25s;
-}
-.wf-btn:hover{box-shadow:0 0 24px var(--cyan-glow)}
-.waitlist-note{
-  font-family:'Share Tech Mono',monospace;font-size:.7rem;
-  letter-spacing:.12em;color:var(--muted);margin-bottom:3rem;
-}
-.waitlist-perks{
-  display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;
-  margin-top:2rem;
-}
-.perk{
-  display:flex;align-items:center;gap:.5rem;
-  font-size:.82rem;color:var(--muted2);
-}
-.perk-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);flex-shrink:0}
-/* success message */
-.wl-success{
-  display:none;text-align:center;
-  font-family:'Orbitron',monospace;font-size:1rem;
-  color:var(--cyan);letter-spacing:.1em;
-  padding:1.5rem;border:1px solid rgba(0,229,255,0.3);
-  background:var(--cyan-dim);margin-top:1rem;
-}
+    .mobile-close {
+      position: absolute;
+      top: 24px;
+      right: 30px;
+      font-size: 2rem;
+      color: var(--cyan);
+      cursor: pointer;
+    }
 
-/*══════════════════════════════════════════════
-  SECTION HEADINGS (shared)
-══════════════════════════════════════════════*/
-.section-tag{
-  display:inline-block;
-  font-family:'Share Tech Mono',monospace;font-size:.72rem;
-  letter-spacing:.28em;text-transform:uppercase;
-  color:var(--cyan);border:1px solid rgba(0,229,255,0.25);
-  padding:.3rem .9rem;margin-bottom:1.2rem;
-}
-.section-h2{
-  font-family:'Orbitron',monospace;font-weight:700;
-  font-size:clamp(1.8rem,3vw,2.8rem);
-  line-height:1.15;margin-bottom:1.2rem;
-}
-.section-h2 em{font-style:normal;color:var(--cyan)}
-.section-lead{
-  color:var(--muted2);font-size:1.05rem;line-height:1.8;
-  max-width:680px;
-}
+    /* =====================================================
+       LAYOUT UTILITIES
+    ===================================================== */
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
 
-/*══════════════════════════════════════════════
-  FOOTER
-══════════════════════════════════════════════*/
-footer{
-  border-top:1px solid var(--border);
-  padding:2.5rem 3.5rem;
-  display:flex;align-items:center;justify-content:space-between;
-  flex-wrap:wrap;gap:1rem;
-  position:relative;z-index:10;
-}
-.footer-left{display:flex;align-items:center;gap:.7rem}
-.footer-brand{
-  font-family:'Orbitron',monospace;font-size:.78rem;
-  letter-spacing:.2em;color:var(--muted2);
-}
-.footer-right{
-  font-family:'Share Tech Mono',monospace;font-size:.68rem;
-  letter-spacing:.1em;color:var(--muted);
-}
-.footer-links{display:flex;gap:1.5rem;list-style:none}
-.footer-links a{
-  font-family:'Share Tech Mono',monospace;font-size:.68rem;
-  letter-spacing:.1em;color:var(--muted);text-decoration:none;
-  transition:color .2s;cursor:none;
-}
-.footer-links a:hover{color:var(--cyan)}
+    section {
+      position: relative;
+      z-index: 1;
+    }
 
-/*══════════════════════════════════════════════
-  DIVIDER
-══════════════════════════════════════════════*/
-.h-divider{
-  height:1px;
-  background:linear-gradient(90deg,transparent,rgba(0,229,255,0.15),rgba(168,85,247,0.1),transparent);
-  margin:0;
-}
+    .section-label {
+      font-family: var(--font-head);
+      font-size: 0.68rem;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 18px;
+    }
 
-/*══════════════════════════════════════════════
-  PAGE TRANSITION FLASH
-══════════════════════════════════════════════*/
-#flash{
-  position:fixed;inset:0;background:var(--cyan);
-  z-index:700;pointer-events:none;opacity:0;
-  transition:opacity .15s;
-}
+    .section-title {
+      font-family: var(--font-head);
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--text-white);
+    }
 
-/*══════════════════════════════════════════════
-  UTILITY / ANIMATIONS
-══════════════════════════════════════════════*/
-.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}
-.reveal.visible{opacity:1;transform:translateY(0)}
-.reveal-d1{transition-delay:.1s}
-.reveal-d2{transition-delay:.2s}
-.reveal-d3{transition-delay:.3s}
-.reveal-d4{transition-delay:.4s}
-.reveal-d5{transition-delay:.5s}
-.reveal-d6{transition-delay:.6s}
+    .glow-line {
+      width: 60px;
+      height: 2px;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+      margin: 24px 0 32px;
+    }
 
-/*══════════════════════════════════════════════
-  RESPONSIVE
-══════════════════════════════════════════════*/
-@media(max-width:900px){
-  nav{padding:1.2rem 1.5rem}
-  .nav-links{display:none}
-  .about-grid,.vision-layout{grid-template-columns:1fr}
-  .models-grid,.features-grid{grid-template-columns:1fr 1fr}
-  .about-visual{height:280px}
-  .section{padding-left:1.5rem;padding-right:1.5rem}
-  footer{padding:2rem 1.5rem}
-}
-@media(max-width:600px){
-  .models-grid,.features-grid{grid-template-columns:1fr}
-  .hero h1{font-size:2.2rem}
-  .countdown{gap:.8rem}
-  .cd-box{width:80px;height:80px}
-  .cd-num{font-size:1.9rem}
-  .waitlist-form{flex-direction:column}
-  .wf-input{border-right:1px solid rgba(0,229,255,0.2);border-bottom:none}
-}
-</style>
+    /* =====================================================
+       REVEAL ANIMATIONS (JS-triggered)
+    ===================================================== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-left {
+      opacity: 0;
+      transform: translateX(-40px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal-left.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .reveal-right {
+      opacity: 0;
+      transform: translateX(40px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal-right.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* =====================================================
+       HERO SECTION
+    ===================================================== */
+    #home {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 40px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--cyan-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--cyan-border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.08;
+      z-index: 0;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
+    }
+
+    .hero-glow-orb {
+      position: absolute;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(0, 245, 255, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 860px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-head);
+      font-size: 0.68rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      border: 1px solid var(--cyan-border);
+      padding: 7px 18px;
+      border-radius: 2px;
+      margin-bottom: 36px;
+      background: var(--cyan-glow);
+      animation: fadeInDown 0.9s ease forwards;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-title {
+      font-family: var(--font-head);
+      font-size: clamp(3rem, 8vw, 7.5rem);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      line-height: 1;
+      margin-bottom: 12px;
+      animation: fadeInUp 1s ease 0.2s both;
+    }
+
+    .hero-title .ghost {
+      color: var(--text-white);
+    }
+
+    .hero-title .ai {
+      color: var(--cyan);
+      text-shadow: 0 0 30px var(--cyan), 0 0 60px rgba(0, 245, 255, 0.3);
+    }
+
+    .hero-brand {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      font-weight: 400;
+      letter-spacing: 0.5em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 32px;
+      animation: fadeInUp 1s ease 0.35s both;
+    }
+
+    .hero-desc {
+      font-size: 1.15rem;
+      font-weight: 300;
+      line-height: 1.7;
+      color: var(--text-dim);
+      max-width: 600px;
+      margin: 0 auto 48px;
+      animation: fadeInUp 1s ease 0.5s both;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: fadeInUp 1s ease 0.65s both;
+    }
+
+    .btn-primary {
+      font-family: var(--font-head);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 15px 38px;
+      background: var(--cyan);
+      color: var(--bg-black);
+      border: none;
+      border-radius: 2px;
+      cursor: none;
+      transition: box-shadow var(--transition), transform var(--transition);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 30px var(--cyan), 0 0 60px rgba(0, 245, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      font-family: var(--font-head);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 15px 38px;
+      background: transparent;
+      color: var(--text-white);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      cursor: none;
+      transition: border-color var(--transition), color var(--transition), transform var(--transition);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      transform: translateY(-2px);
+    }
+
+    .hero-scroll-indicator {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 2;
+      animation: fadeInUp 1s ease 1.2s both;
+    }
+
+    .hero-scroll-indicator span {
+      font-family: var(--font-body);
+      font-size: 0.68rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .scroll-line {
+      width: 1px;
+      height: 50px;
+      background: linear-gradient(to bottom, var(--cyan), transparent);
+      animation: scrollPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes scrollPulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* =====================================================
+       ABOUT SECTION
+    ===================================================== */
+    #about {
+      padding: 120px 0;
+    }
+
+    .about-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+
+    .about-visual {
+      position: relative;
+      height: 420px;
+    }
+
+    .about-hex-ring {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hex-outer {
+      width: 300px;
+      height: 300px;
+      border: 1px solid var(--cyan-border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      animation: rotateSlow 20s linear infinite;
+      box-shadow: 0 0 40px var(--cyan-glow), inset 0 0 40px var(--cyan-glow);
+    }
+
+    @keyframes rotateSlow {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .hex-outer::before,
+    .hex-outer::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+    }
+
+    .hex-outer::before { top: -5px; left: 50%; transform: translateX(-50%); }
+    .hex-outer::after  { bottom: -5px; left: 50%; transform: translateX(-50%); }
+
+    .hex-inner {
+      width: 200px;
+      height: 200px;
+      border: 1px solid rgba(0, 245, 255, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: rotateSlow 12s linear infinite reverse;
+    }
+
+    .hex-center {
+      width: 100px;
+      height: 100px;
+      background: radial-gradient(circle, rgba(0, 245, 255, 0.2) 0%, transparent 70%);
+      border: 1px solid var(--cyan-border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: none;
+    }
+
+    .hex-center-label {
+      font-family: var(--font-head);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: var(--cyan);
+      text-shadow: 0 0 12px var(--cyan);
+      animation: rotateSlow 20s linear infinite reverse;
+    }
+
+    .about-text .section-title {
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      margin-bottom: 0;
+    }
+
+    .about-text p {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+
+    .about-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 40px;
+    }
+
+    .stat-item {
+      border-left: 1px solid var(--cyan-border);
+      padding-left: 18px;
+    }
+
+    .stat-num {
+      font-family: var(--font-head);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--cyan);
+      text-shadow: 0 0 16px var(--cyan);
+    }
+
+    .stat-label {
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* =====================================================
+       FEATURES SECTION
+    ===================================================== */
+    #features {
+      padding: 120px 0;
+      background: linear-gradient(to bottom, transparent, rgba(0, 245, 255, 0.02), transparent);
+    }
+
+    .features-header {
+      text-align: center;
+      margin-bottom: 72px;
+    }
+
+    .features-header .section-title {
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+    }
+
+    .features-header .glow-line {
+      margin: 24px auto 32px;
+    }
+
+    .features-header p {
+      font-size: 1.05rem;
+      color: var(--text-dim);
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(0, 245, 255, 0.1);
+      border-radius: 4px;
+      padding: 40px 32px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    .feature-card:hover {
+      border-color: var(--cyan-border);
+      box-shadow: 0 0 40px var(--cyan-glow);
+      transform: translateY(-6px);
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-icon {
+      width: 52px;
+      height: 52px;
+      border: 1px solid var(--cyan-border);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      font-size: 1.4rem;
+      background: var(--cyan-glow);
+      transition: box-shadow var(--transition);
+    }
+
+    .feature-card:hover .feature-icon {
+      box-shadow: 0 0 20px var(--cyan-glow);
+    }
+
+    .feature-card h3 {
+      font-family: var(--font-head);
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--text-white);
+      margin-bottom: 14px;
+      text-transform: uppercase;
+    }
+
+    .feature-card p {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: var(--text-dim);
+    }
+
+    .feature-num {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      font-family: var(--font-head);
+      font-size: 0.65rem;
+      color: rgba(0, 245, 255, 0.2);
+      letter-spacing: 0.1em;
+    }
+
+    /* =====================================================
+       VISION SECTION
+    ===================================================== */
+    #vision {
+      padding: 120px 0;
+    }
+
+    .vision-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 100px;
+      align-items: center;
+    }
+
+    .vision-text .section-title {
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+    }
+
+    .vision-text p {
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+
+    .vision-pillars {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 36px;
+    }
+
+    .pillar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 20px;
+      border: 1px solid rgba(0, 245, 255, 0.1);
+      border-radius: 3px;
+      background: var(--bg-card);
+      transition: border-color var(--transition), background var(--transition);
+    }
+
+    .pillar:hover {
+      border-color: var(--cyan-border);
+      background: rgba(0, 245, 255, 0.06);
+    }
+
+    .pillar-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      flex-shrink: 0;
+    }
+
+    .pillar span {
+      font-family: var(--font-body);
+      font-size: 0.92rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: var(--text-white);
+    }
+
+    .vision-terminal {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(0, 245, 255, 0.2);
+      border-radius: 6px;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+    }
+
+    .terminal-bar {
+      background: rgba(0, 245, 255, 0.06);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(0, 245, 255, 0.12);
+    }
+
+    .term-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .term-dot.red   { background: #ff5f57; }
+    .term-dot.yellow{ background: #febc2e; }
+    .term-dot.green { background: #28c840; }
+
+    .terminal-title {
+      font-family: var(--font-body);
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      margin-left: 8px;
+    }
+
+    .terminal-body {
+      padding: 28px;
+      font-size: 0.82rem;
+      line-height: 1.9;
+    }
+
+    .term-line {
+      display: block;
+      color: var(--text-dim);
+    }
+
+    .term-line .prompt {
+      color: var(--cyan);
+      margin-right: 10px;
+    }
+
+    .term-line .cmd {
+      color: var(--text-white);
+    }
+
+    .term-line .out {
+      color: rgba(0, 245, 255, 0.6);
+      padding-left: 22px;
+    }
+
+    .term-line .comment {
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    .cursor-blink {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: var(--cyan);
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    /* =====================================================
+       LAUNCH / COUNTDOWN SECTION
+    ===================================================== */
+    #launch {
+      padding: 140px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .launch-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(0, 245, 255, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .launch-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .launch-content .section-title {
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      margin-bottom: 0;
+    }
+
+    .launch-content .glow-line {
+      margin: 24px auto 16px;
+    }
+
+    .launch-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-dim);
+      margin-bottom: 72px;
+    }
+
+    .countdown-grid {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 60px;
+    }
+
+    .countdown-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .countdown-box {
+      width: 110px;
+      height: 110px;
+      border: 1px solid var(--cyan-border);
+      border-radius: 4px;
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 20px var(--cyan-glow), inset 0 0 20px var(--cyan-glow);
+    }
+
+    .countdown-box::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,245,255,0.04) 0%, transparent 60%);
+    }
+
+    .countdown-num {
+      font-family: var(--font-head);
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--cyan);
+      text-shadow: 0 0 20px var(--cyan);
+      letter-spacing: 0.04em;
+      transition: transform 0.25s ease;
+    }
+
+    .countdown-num.flip {
+      transform: scale(1.15);
+    }
+
+    .countdown-label {
+      font-family: var(--font-head);
+      font-size: 0.62rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .countdown-sep {
+      display: flex;
+      align-items: center;
+      padding-bottom: 24px;
+    }
+
+    .countdown-sep span {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      color: var(--cyan-dim);
+      opacity: 0.5;
+    }
+
+    /* =====================================================
+       WAITLIST SECTION
+    ===================================================== */
+    #waitlist {
+      padding: 120px 0 160px;
+    }
+
+    .waitlist-box {
+      max-width: 640px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .waitlist-box .section-title {
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+    }
+
+    .waitlist-box .glow-line {
+      margin: 24px auto 28px;
+    }
+
+    .waitlist-box p {
+      font-size: 1.05rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-bottom: 48px;
+    }
+
+    .waitlist-form {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--cyan-border);
+      border-radius: 3px;
+      overflow: hidden;
+      transition: box-shadow var(--transition);
+    }
+
+    .waitlist-form:focus-within {
+      box-shadow: 0 0 30px var(--cyan-glow);
+    }
+
+    .waitlist-input {
+      flex: 1;
+      background: rgba(0, 245, 255, 0.03);
+      border: none;
+      outline: none;
+      padding: 18px 24px;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      color: var(--text-white);
+      caret-color: var(--cyan);
+    }
+
+    .waitlist-input::placeholder {
+      color: rgba(122, 154, 170, 0.5);
+      letter-spacing: 0.05em;
+    }
+
+    .waitlist-btn {
+      font-family: var(--font-head);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 18px 30px;
+      background: var(--cyan);
+      color: var(--bg-black);
+      border: none;
+      cursor: none;
+      transition: box-shadow var(--transition);
+      white-space: nowrap;
+    }
+
+    .waitlist-btn:hover {
+      box-shadow: 0 0 30px rgba(0, 245, 255, 0.5);
+    }
+
+    .waitlist-note {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 18px;
+      opacity: 0.6;
+    }
+
+    .waitlist-success {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 18px 24px;
+      border: 1px solid var(--cyan-border);
+      border-radius: 3px;
+      background: rgba(0, 245, 255, 0.06);
+      font-family: var(--font-head);
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      color: var(--cyan);
+    }
+
+    .waitlist-success.show {
+      display: flex;
+    }
+
+    /* =====================================================
+       FOOTER
+    ===================================================== */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid rgba(0, 245, 255, 0.08);
+      padding: 48px 0 32px;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    .footer-brand .nav-logo-text {
+      font-size: 0.95rem;
+    }
+
+    .footer-copy {
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      opacity: 0.5;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 28px;
+    }
+
+    .footer-links a {
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      transition: color var(--transition);
+    }
+
+    .footer-links a:hover {
+      color: var(--cyan);
+    }
+
+    /* =====================================================
+       SCROLLBAR STYLING
+    ===================================================== */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-black);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--cyan-dim);
+      border-radius: 2px;
+    }
+
+    /* =====================================================
+       RESPONSIVE — TABLET & MOBILE
+    ===================================================== */
+    @media (max-width: 1024px) {
+      #navbar {
+        padding: 18px 32px;
+      }
+
+      #navbar.scrolled {
+        padding: 12px 32px;
+      }
+
+      .container {
+        padding: 0 28px;
+      }
+
+      .about-inner,
+      .vision-inner {
+        grid-template-columns: 1fr;
+        gap: 56px;
+      }
+
+      .about-visual {
+        height: 320px;
+        order: -1;
+      }
+
+      .hex-outer { width: 240px; height: 240px; }
+      .hex-inner { width: 160px; height: 160px; }
+
+      .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      #navbar {
+        padding: 16px 24px;
+      }
+
+      .nav-links,
+      .nav-cta {
+        display: none;
+      }
+
+      .nav-hamburger {
+        display: flex;
+      }
+
+      .container {
+        padding: 0 20px;
+      }
+
+      #home {
+        padding: 100px 24px 80px;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .countdown-box {
+        width: 80px;
+        height: 80px;
+      }
+
+      .countdown-num {
+        font-size: 2rem;
+      }
+
+      .waitlist-form {
+        flex-direction: column;
+      }
+
+      .waitlist-btn {
+        border-radius: 0;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .about-stats {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .countdown-box {
+        width: 70px;
+        height: 70px;
+      }
+
+      .countdown-num {
+        font-size: 1.6rem;
+      }
+
+      .countdown-grid {
+        gap: 12px;
+      }
+
+      .countdown-sep {
+        display: none;
+      }
+    }
+
+    /* =====================================================
+       UTILITY — SELECTION COLOR
+    ===================================================== */
+    ::selection {
+      background: rgba(0, 245, 255, 0.25);
+      color: var(--cyan);
+    }
+  </style>
 </head>
 <body>
 
-<!-- CURSOR -->
-<div id="cur"></div>
-<div id="cur-r"></div>
+  <!-- =====================================================
+       CUSTOM CURSOR
+  ===================================================== -->
+  <div id="cursor-dot"></div>
+  <div id="cursor-ring"></div>
 
-<!-- PAGE FLASH -->
-<div id="flash"></div>
+  <!-- =====================================================
+       PARTICLE BACKGROUND
+  ===================================================== -->
+  <canvas id="particle-canvas"></canvas>
 
-<!-- CANVAS -->
-<canvas id="bgc"></canvas>
+  <!-- =====================================================
+       NAVBAR
+  ===================================================== -->
+  <nav id="navbar">
+    <a href="#home" class="nav-logo">
+      <img src="assets/logo.png" alt="Blackdot Logo" onerror="this.style.display='none'" />
+      <div>
+        <div class="nav-logo-text">Ghost AI</div>
+        <div class="nav-logo-sub">by Blackdot</div>
+      </div>
+    </a>
 
-<!-- ════════════════════════════════════════
-     NAV
-════════════════════════════════════════ -->
-<nav>
-  <a class="nav-logo" href="#" onclick="showPage('home');return false">
-    <div class="nav-logo-dot"></div>
-    <span class="nav-brand">BLACKDOT</span>
-  </a>
-  <ul class="nav-links">
-    <li><a href="#" onclick="showPage('home');return false" data-page="home" class="active-link">Home</a></li>
-    <li><a href="#" onclick="showPage('about');return false" data-page="about">About</a></li>
-    <li><a href="#" onclick="showPage('ghostai');return false" data-page="ghostai">Ghost AI</a></li>
-    <li><a href="#" onclick="showPage('features');return false" data-page="features">Features</a></li>
-    <li><a href="#" onclick="showPage('vision');return false" data-page="vision">Vision</a></li>
-    <li><a href="#" onclick="showPage('launch');return false" data-page="launch">Launch</a></li>
-  </ul>
-  <button class="nav-cta" onclick="showPage('waitlist')">Join Waitlist</button>
-</nav>
+    <ul class="nav-links">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#vision">Vision</a></li>
+      <li><a href="#launch">Launch</a></li>
+    </ul>
 
-<!-- ════════════════════════════════════════
-     PAGE: HOME
-════════════════════════════════════════ -->
-<div class="page active" id="page-home">
-  <section class="hero">
-    <div class="hero-grid"></div>
-    <div class="hero-ring"></div>
-    <div class="hero-ring"></div>
-    <div class="hero-ring"></div>
-    <div class="hero-glow"></div>
-    <div class="hero-ghost-glow"></div>
+    <a href="#waitlist" class="nav-cta">Join Waitlist</a>
 
-    <div class="bd-stamp" style="justify-content:center">
-      <div class="bd-stamp-dot"></div>
-      <span class="bd-stamp-text">Blackdot</span>
+    <div class="nav-hamburger" id="nav-hamburger" aria-label="Open menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobile-menu">
+    <div class="mobile-close" id="mobile-close">&#x2715;</div>
+    <a href="#home" class="mobile-link">Home</a>
+    <a href="#about" class="mobile-link">About</a>
+    <a href="#features" class="mobile-link">Features</a>
+    <a href="#vision" class="mobile-link">Vision</a>
+    <a href="#launch" class="mobile-link">Launch</a>
+    <a href="#waitlist" class="mobile-link">Join Waitlist</a>
+  </div>
+
+  <!-- =====================================================
+       HERO SECTION
+  ===================================================== -->
+  <section id="home">
+    <div class="hero-bg-grid"></div>
+    <div class="hero-glow-orb"></div>
+
+    <div class="hero-content">
+      <div class="hero-badge">Blackdot Intelligence Lab — Project Ghost</div>
+
+      <h1 class="hero-title">
+        <span class="ghost">GHOST</span><br />
+        <span class="ai">AI</span>
+      </h1>
+
+      <p class="hero-brand">Blackdot · Advanced Intelligence System</p>
+
+      <p class="hero-desc">
+        The next generation of autonomous artificial intelligence.
+        Silent. Adaptive. Unstoppable. Ghost AI operates beyond conventional boundaries
+        to deliver capabilities no system has achieved before.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#waitlist" class="btn-primary">Request Early Access</a>
+        <a href="#about" class="btn-secondary">Discover More</a>
+      </div>
     </div>
 
-    <p class="hero-eyebrow">Introducing Ghost AI — Classified. Pre-Launch.</p>
-    <h1>
-      <span class="ghost-word">Ghost AI</span>
-      The Intelligent Assistant<br/>Built for the Future.
-    </h1>
-    <p class="hero-sub">
-      A new kind of AI is emerging from Blackdot — one that doesn't just respond,
-      but understands, adapts, and evolves. The future of intelligence is almost here.
-    </p>
-    <div class="hero-btns">
-      <button class="btn-primary" onclick="showPage('waitlist')">Request Early Access</button>
-      <button class="btn-ghost" onclick="showPage('ghostai')">Discover Ghost AI</button>
-    </div>
-
-    <div class="hero-scroll">
+    <div class="hero-scroll-indicator">
       <span>Scroll</span>
       <div class="scroll-line"></div>
     </div>
   </section>
-  <footer>
-    <div class="footer-left">
-      <div class="nav-logo-dot" style="width:14px;height:14px"></div>
-      <span class="footer-brand">BLACKDOT</span>
-    </div>
-    <ul class="footer-links">
-      <li><a href="#" onclick="showPage('about');return false">About</a></li>
-      <li><a href="#" onclick="showPage('waitlist');return false">Waitlist</a></li>
-    </ul>
-    <span class="footer-right">© 2025 Blackdot. All rights reserved.</span>
-  </footer>
-</div>
 
-<!-- ════════════════════════════════════════
-     PAGE: ABOUT
-════════════════════════════════════════ -->
-<div class="page" id="page-about">
-  <div class="section">
-    <div class="section-inner">
-      <div class="about-grid">
-        <div class="about-visual">
-          <div class="about-lines">
-            <div class="a-ring"></div>
-            <div class="a-ring"></div>
-            <div class="a-ring"></div>
-          </div>
-          <div class="about-orb">
-            <div class="about-orb-inner"></div>
+  <!-- =====================================================
+       ABOUT SECTION
+  ===================================================== -->
+  <section id="about">
+    <div class="container">
+      <div class="about-inner">
+        <div class="about-visual reveal-left">
+          <div class="about-hex-ring">
+            <div class="hex-outer">
+              <div class="hex-inner">
+                <div class="hex-center">
+                  <div class="hex-center-label">GHOST</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="about-text reveal">
-          <div class="bd-stamp">
-            <div class="bd-stamp-dot"></div>
-            <span class="bd-stamp-text">Blackdot</span>
-          </div>
-          <span class="section-tag">About the Company</span>
-          <h2 class="section-h2">Building the <em>next era</em><br/>of artificial intelligence.</h2>
+
+        <div class="about-text reveal-right">
+          <p class="section-label">/ About Ghost AI</p>
+          <h2 class="section-title">Intelligence<br />Reimagined</h2>
+          <div class="glow-line"></div>
           <p>
-            Blackdot is a technology company at the frontier of artificial intelligence.
-            We design and develop advanced AI systems and innovative digital tools
-            that redefine how humans interact with technology.
+            Ghost AI is Blackdot's flagship intelligence system — a highly adaptive,
+            context-aware artificial intelligence built from the ground up for
+            enterprise-grade performance and beyond.
           </p>
           <p>
-            Founded on the belief that intelligence should be accessible, private, and
-            powerful — Blackdot engineers solutions that don't just automate tasks,
-            but augment human capability at every level.
+            Unlike conventional AI models, Ghost operates in real time across
+            distributed environments, learning silently from every interaction
+            to evolve its capabilities without interruption.
           </p>
           <p>
-            From AI infrastructure to consumer-facing intelligent assistants, every
-            product we build carries the same mission: make the future arrive faster.
+            From autonomous decision-making to multi-modal reasoning, Ghost AI
+            represents the culmination of Blackdot's years of foundational research.
           </p>
+
           <div class="about-stats">
-            <div class="stat">
-              <div class="stat-n">01</div>
-              <div class="stat-l">AI Product in Development</div>
+            <div class="stat-item">
+              <div class="stat-num">10x</div>
+              <div class="stat-label">Faster Inference</div>
             </div>
-            <div class="stat">
-              <div class="stat-n">∞</div>
-              <div class="stat-l">Possibilities Ahead</div>
+            <div class="stat-item">
+              <div class="stat-num">99.9%</div>
+              <div class="stat-label">Uptime SLA</div>
             </div>
-            <div class="stat">
-              <div class="stat-n">100%</div>
-              <div class="stat-l">Privacy First</div>
+            <div class="stat-item">
+              <div class="stat-num">∞</div>
+              <div class="stat-label">Scalability</div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  <div class="h-divider"></div>
-  <footer>
-    <div class="footer-left">
-      <div class="nav-logo-dot" style="width:14px;height:14px"></div>
-      <span class="footer-brand">BLACKDOT</span>
-    </div>
-    <ul class="footer-links">
-      <li><a href="#" onclick="showPage('ghostai');return false">Ghost AI</a></li>
-      <li><a href="#" onclick="showPage('waitlist');return false">Waitlist</a></li>
-    </ul>
-    <span class="footer-right">© 2025 Blackdot. All rights reserved.</span>
-  </footer>
-</div>
+  </section>
 
-<!-- ════════════════════════════════════════
-     PAGE: GHOST AI
-════════════════════════════════════════ -->
-<div class="page" id="page-ghostai">
-  <div class="section">
-    <div class="ghost-hero reveal">
-      <div class="bd-stamp" style="justify-content:center">
-        <div class="bd-stamp-dot"></div>
-        <span class="bd-stamp-text">Blackdot</span>
-      </div>
-      <div class="ghost-logo">
-        <div class="ghost-circle">
-          <span class="ghost-g">G</span>
-          <div class="ghost-ring-wrap"></div>
-        </div>
-      </div>
-      <span class="section-tag">Product Preview</span>
-      <h2 class="section-h2" style="text-align:center">
-        Meet <span style="color:var(--ghost)">Ghost AI</span>
-      </h2>
-      <p>
-        Ghost AI is a powerful, privacy-first AI assistant built to seamlessly interact
-        with your devices, automate your workflows, and multiply your productivity.
-        It doesn't just answer questions — it thinks ahead.
-      </p>
-    </div>
-
-    <!-- Multi-Model Grid -->
-    <div style="padding-top:1rem">
-      <div class="bd-stamp reveal" style="justify-content:center;margin-bottom:2.5rem">
-        <div class="bd-stamp-dot"></div>
-        <span class="bd-stamp-text">Multi-Model Intelligence</span>
-      </div>
-      <div class="models-grid">
-        <div class="model-card reveal reveal-d1">
-          <div class="model-card-icon"><div class="model-dot"></div>CORE MODEL</div>
-          <h4>Ghost Reasoning</h4>
-          <p>Deep logical reasoning engine capable of multi-step problem solving, code generation, and complex analysis.</p>
-          <span class="model-tag">Primary Intelligence</span>
-        </div>
-        <div class="model-card reveal reveal-d2">
-          <div class="model-card-icon"><div class="model-dot"></div>VISION MODEL</div>
-          <h4>Ghost Vision</h4>
-          <p>Multimodal visual AI that can interpret screens, documents, images, and real-world environments in real-time.</p>
-          <span class="model-tag">Visual Intelligence</span>
-        </div>
-        <div class="model-card reveal reveal-d3">
-          <div class="model-card-icon"><div class="model-dot"></div>VOICE MODEL</div>
-          <h4>Ghost Voice</h4>
-          <p>Natural conversational voice interface with emotional tone recognition and ultra-low latency responses.</p>
-          <span class="model-tag">Voice Intelligence</span>
-        </div>
-        <div class="model-card reveal reveal-d4">
-          <div class="model-card-icon"><div class="model-dot"></div>AGENT MODEL</div>
-          <h4>Ghost Agent</h4>
-          <p>Autonomous task execution agent that can browse the web, run scripts, manage files, and interact with apps.</p>
-          <span class="model-tag">Agentic Intelligence</span>
-        </div>
-        <div class="model-card reveal reveal-d5">
-          <div class="model-card-icon"><div class="model-dot"></div>MEMORY MODEL</div>
-          <h4>Ghost Memory</h4>
-          <p>Long-term personalized memory system that learns your preferences, habits, and context over time.</p>
-          <span class="model-tag">Adaptive Intelligence</span>
-        </div>
-        <div class="model-card reveal reveal-d6">
-          <div class="model-card-icon"><div class="model-dot"></div>GUARD MODEL</div>
-          <h4>Ghost Guard</h4>
-          <p>On-device privacy shield that ensures your data never leaves your device without your explicit consent.</p>
-          <span class="model-tag">Privacy Intelligence</span>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="h-divider"></div>
-  <footer>
-    <div class="footer-left">
-      <div class="nav-logo-dot" style="width:14px;height:14px"></div>
-      <span class="footer-brand">BLACKDOT</span>
-    </div>
-    <ul class="footer-links">
-      <li><a href="#" onclick="showPage('features');return false">Features</a></li>
-      <li><a href="#" onclick="showPage('waitlist');return false">Waitlist</a></li>
-    </ul>
-    <span class="footer-right">© 2025 Blackdot. All rights reserved.</span>
-  </footer>
-</div>
-
-<!-- ════════════════════════════════════════
-     PAGE: FEATURES
-════════════════════════════════════════ -->
-<div class="page" id="page-features">
-  <div class="section">
-    <div class="section-inner">
-      <div class="reveal" style="text-align:center;margin-bottom:4rem">
-        <div class="bd-stamp" style="justify-content:center">
-          <div class="bd-stamp-dot"></div>
-          <span class="bd-stamp-text">Blackdot</span>
-        </div>
-        <span class="section-tag">Capabilities</span>
-        <h2 class="section-h2" style="text-align:center">
-          What <em>Ghost AI</em> can do
-        </h2>
-        <p class="section-lead" style="margin:0 auto;text-align:center">
-          Six breakthrough capabilities engineered into a single intelligent system —
-          purpose-built to elevate every aspect of how you work and live.
+  <!-- =====================================================
+       FEATURES SECTION
+  ===================================================== -->
+  <section id="features">
+    <div class="container">
+      <div class="features-header reveal">
+        <p class="section-label">/ Core Capabilities</p>
+        <h2 class="section-title">What Ghost AI<br />Can Do</h2>
+        <div class="glow-line"></div>
+        <p>
+          Engineered for the demands of tomorrow, Ghost AI delivers
+          a complete suite of intelligence features in a single, unified system.
         </p>
       </div>
 
       <div class="features-grid">
-        <div class="feat-card reveal reveal-d1">
-          <div class="feat-num">01 — INTELLIGENCE</div>
-          <div class="feat-icon">🧠</div>
-          <div class="bd-stamp" style="margin-bottom:.8rem">
-            <div class="bd-stamp-dot" style="width:18px;height:18px"></div>
-            <span class="bd-stamp-text" style="font-size:.62rem">Blackdot</span>
-          </div>
-          <h3>Smart AI Assistance</h3>
-          <p>Context-aware intelligence that understands nuance, learns from interaction, and delivers answers that actually matter to you.</p>
-          <div class="feat-line"></div>
+
+        <div class="feature-card reveal" style="transition-delay: 0.1s">
+          <div class="feature-num">01</div>
+          <div class="feature-icon">🧠</div>
+          <h3>Adaptive Reasoning</h3>
+          <p>Dynamic multi-step reasoning that evolves with context, solving complex problems across domains with human-level nuance.</p>
         </div>
 
-        <div class="feat-card reveal reveal-d2">
-          <div class="feat-num">02 — CONTROL</div>
-          <div class="feat-icon">🖥️</div>
-          <div class="bd-stamp" style="margin-bottom:.8rem">
-            <div class="bd-stamp-dot" style="width:18px;height:18px"></div>
-            <span class="bd-stamp-text" style="font-size:.62rem">Blackdot</span>
-          </div>
-          <h3>Device Interaction</h3>
-          <p>Natively integrates with your OS, apps, and peripherals. Ghost AI can see, click, type, and navigate on your behalf.</p>
-          <div class="feat-line"></div>
+        <div class="feature-card reveal" style="transition-delay: 0.2s">
+          <div class="feature-num">02</div>
+          <div class="feature-icon">⚡</div>
+          <h3>Real-Time Processing</h3>
+          <p>Sub-millisecond response architecture enables Ghost to operate in real-time environments without latency trade-offs.</p>
         </div>
 
-        <div class="feat-card reveal reveal-d3">
-          <div class="feat-num">03 — AUTOMATION</div>
-          <div class="feat-icon">⚡</div>
-          <div class="bd-stamp" style="margin-bottom:.8rem">
-            <div class="bd-stamp-dot" style="width:18px;height:18px"></div>
-            <span class="bd-stamp-text" style="font-size:.62rem">Blackdot</span>
-          </div>
-          <h3>Intelligent Automation</h3>
-          <p>Build multi-step workflows that run autonomously. From scheduling to research to file management — automated without code.</p>
-          <div class="feat-line"></div>
+        <div class="feature-card reveal" style="transition-delay: 0.3s">
+          <div class="feature-num">03</div>
+          <div class="feature-icon">🔒</div>
+          <h3>Secure by Design</h3>
+          <p>End-to-end encryption, zero-knowledge inference, and on-device processing ensure complete data sovereignty.</p>
         </div>
 
-        <div class="feat-card reveal reveal-d4">
-          <div class="feat-num">04 — PRIVACY</div>
-          <div class="feat-icon">🔐</div>
-          <div class="bd-stamp" style="margin-bottom:.8rem">
-            <div class="bd-stamp-dot" style="width:18px;height:18px"></div>
-            <span class="bd-stamp-text" style="font-size:.62rem">Blackdot</span>
-          </div>
-          <h3>Privacy-First Design</h3>
-          <p>On-device processing by default. Your conversations, commands, and data stay on your hardware — never sold, never shared.</p>
-          <div class="feat-line"></div>
+        <div class="feature-card reveal" style="transition-delay: 0.4s">
+          <div class="feature-num">04</div>
+          <div class="feature-icon">🌐</div>
+          <h3>Multi-Modal Input</h3>
+          <p>Processes text, audio, visual, and structured data simultaneously, creating a holistic understanding of any input.</p>
         </div>
 
-        <div class="feat-card reveal reveal-d5">
-          <div class="feat-num">05 — SPEED</div>
-          <div class="feat-icon">🚀</div>
-          <div class="bd-stamp" style="margin-bottom:.8rem">
-            <div class="bd-stamp-dot" style="width:18px;height:18px"></div>
-            <span class="bd-stamp-text" style="font-size:.62rem">Blackdot</span>
-          </div>
-          <h3>Fast Responses & Learning</h3>
-          <p>Sub-second response latency combined with an adaptive learning loop that makes Ghost AI more efficient the more you use it.</p>
-          <div class="feat-line"></div>
+        <div class="feature-card reveal" style="transition-delay: 0.5s">
+          <div class="feature-num">05</div>
+          <div class="feature-icon">🤖</div>
+          <h3>Autonomous Agents</h3>
+          <p>Deploy Ghost-powered agents that plan, execute, and iterate on complex multi-step workflows without human oversight.</p>
         </div>
 
-        <div class="feat-card reveal reveal-d6">
-          <div class="feat-num">06 — CUSTOM</div>
-          <div class="feat-icon">🎛️</div>
-          <div class="bd-stamp" style="margin-bottom:.8rem">
-            <div class="bd-stamp-dot" style="width:18px;height:18px"></div>
-            <span class="bd-stamp-text" style="font-size:.62rem">Blackdot</span>
+        <div class="feature-card reveal" style="transition-delay: 0.6s">
+          <div class="feature-num">06</div>
+          <div class="feature-icon">📡</div>
+          <h3>Distributed Network</h3>
+          <p>Native distributed architecture scales horizontally across nodes, regions, and cloud environments with zero friction.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       VISION SECTION
+  ===================================================== -->
+  <section id="vision">
+    <div class="container">
+      <div class="vision-inner">
+        <div class="vision-text reveal-left">
+          <p class="section-label">/ The Vision</p>
+          <h2 class="section-title">Beyond the<br />Horizon</h2>
+          <div class="glow-line"></div>
+          <p>
+            Ghost AI is not simply a product — it is a long-term commitment to
+            advancing the boundaries of what artificial intelligence can achieve
+            in a world that demands more.
+          </p>
+          <p>
+            Blackdot's roadmap is clear: build AI that serves humanity at scale,
+            transparently, securely, and with uncompromising intelligence.
+          </p>
+
+          <div class="vision-pillars">
+            <div class="pillar">
+              <div class="pillar-dot"></div>
+              <span>Transparent & Explainable AI Decisions</span>
+            </div>
+            <div class="pillar">
+              <div class="pillar-dot"></div>
+              <span>Open Research & Community Collaboration</span>
+            </div>
+            <div class="pillar">
+              <div class="pillar-dot"></div>
+              <span>Responsible Deployment at Global Scale</span>
+            </div>
+            <div class="pillar">
+              <div class="pillar-dot"></div>
+              <span>Continuous Self-Improvement Protocols</span>
+            </div>
+            <div class="pillar">
+              <div class="pillar-dot"></div>
+              <span>Human-AI Collaborative Ecosystems</span>
+            </div>
           </div>
-          <h3>Fully Customizable</h3>
-          <p>Personalize every command, interface layer, and behavioral pattern. Ghost AI conforms to you — not the other way around.</p>
-          <div class="feat-line"></div>
+        </div>
+
+        <div class="vision-terminal reveal-right">
+          <div class="terminal-bar">
+            <div class="term-dot red"></div>
+            <div class="term-dot yellow"></div>
+            <div class="term-dot green"></div>
+            <div class="terminal-title">ghost-ai :: system.log</div>
+          </div>
+          <div class="terminal-body">
+            <span class="term-line"><span class="prompt">$</span><span class="cmd">ghost init --mode=autonomous</span></span>
+            <span class="term-line"><span class="out">▸ Loading Ghost AI v0.9.1-alpha...</span></span>
+            <span class="term-line"><span class="out">▸ Initializing neural substrate...</span></span>
+            <span class="term-line"><span class="out">▸ Connecting distributed nodes...</span></span>
+            <span class="term-line"><span class="out">▸ Calibrating inference engine...</span></span>
+            <span class="term-line">&nbsp;</span>
+            <span class="term-line"><span class="prompt">$</span><span class="cmd">ghost status</span></span>
+            <span class="term-line"><span class="out">▸ STATUS: <span style="color:var(--cyan)">ACTIVE</span></span></span>
+            <span class="term-line"><span class="out">▸ NODES:  <span style="color:var(--cyan)">2,048 online</span></span></span>
+            <span class="term-line"><span class="out">▸ LATENCY:<span style="color:var(--cyan)"> 0.3ms avg</span></span></span>
+            <span class="term-line"><span class="out">▸ UPTIME: <span style="color:var(--cyan)">99.97%</span></span></span>
+            <span class="term-line">&nbsp;</span>
+            <span class="term-line"><span class="comment">// Ghost AI — Blackdot Labs, 2025</span></span>
+            <span class="term-line"><span class="prompt">$</span><span class="cursor-blink"></span></span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  <div class="h-divider"></div>
-  <footer>
-    <div class="footer-left">
-      <div class="nav-logo-dot" style="width:14px;height:14px"></div>
-      <span class="footer-brand">BLACKDOT</span>
-    </div>
-    <ul class="footer-links">
-      <li><a href="#" onclick="showPage('vision');return false">Vision</a></li>
-      <li><a href="#" onclick="showPage('waitlist');return false">Waitlist</a></li>
-    </ul>
-    <span class="footer-right">© 2025 Blackdot. All rights reserved.</span>
-  </footer>
-</div>
+  </section>
 
-<!-- ════════════════════════════════════════
-     PAGE: VISION
-════════════════════════════════════════ -->
-<div class="page" id="page-vision">
-  <div class="section">
-    <div class="vision-layout">
-      <div>
-        <div class="bd-stamp reveal">
-          <div class="bd-stamp-dot"></div>
-          <span class="bd-stamp-text">Blackdot</span>
+  <!-- =====================================================
+       LAUNCH / COUNTDOWN SECTION
+  ===================================================== -->
+  <section id="launch">
+    <div class="launch-bg"></div>
+    <div class="container">
+      <div class="launch-content reveal">
+        <p class="section-label">/ Launch Window</p>
+        <h2 class="section-title">Ghost AI Goes Live</h2>
+        <div class="glow-line"></div>
+        <p class="launch-subtitle">The system will be activated. Be ready.</p>
+
+        <div class="countdown-grid">
+          <div class="countdown-unit">
+            <div class="countdown-box">
+              <div class="countdown-num" id="cd-days">00</div>
+            </div>
+            <div class="countdown-label">Days</div>
+          </div>
+
+          <div class="countdown-sep"><span>:</span></div>
+
+          <div class="countdown-unit">
+            <div class="countdown-box">
+              <div class="countdown-num" id="cd-hours">00</div>
+            </div>
+            <div class="countdown-label">Hours</div>
+          </div>
+
+          <div class="countdown-sep"><span>:</span></div>
+
+          <div class="countdown-unit">
+            <div class="countdown-box">
+              <div class="countdown-num" id="cd-mins">00</div>
+            </div>
+            <div class="countdown-label">Minutes</div>
+          </div>
+
+          <div class="countdown-sep"><span>:</span></div>
+
+          <div class="countdown-unit">
+            <div class="countdown-box">
+              <div class="countdown-num" id="cd-secs">00</div>
+            </div>
+            <div class="countdown-label">Seconds</div>
+          </div>
         </div>
-        <span class="section-tag reveal">The Roadmap</span>
-        <div class="vision-timeline" style="margin-top:2rem">
-          <div class="tl-item reveal reveal-d1">
-            <div class="tl-dot"><div class="tl-dot-inner"></div></div>
-            <div class="tl-content">
-              <div class="tl-year">2025 — LAUNCH</div>
-              <h4>Ghost AI v1 — Public Release</h4>
-              <p>Initial launch with core reasoning, device control, and voice interface. Early access users shape the product.</p>
-            </div>
-          </div>
-          <div class="tl-item reveal reveal-d2">
-            <div class="tl-dot"><div class="tl-dot-inner" style="background:var(--ghost)"></div></div>
-            <div class="tl-content">
-              <div class="tl-year" style="color:var(--ghost)">2026 — EXPANSION</div>
-              <h4>Multi-Modal Integration</h4>
-              <p>Full vision, document understanding, and ambient audio intelligence. Ghost AI becomes a persistent presence.</p>
-            </div>
-          </div>
-          <div class="tl-item reveal reveal-d3">
-            <div class="tl-dot"><div class="tl-dot-inner" style="background:var(--cyan)"></div></div>
-            <div class="tl-content">
-              <div class="tl-year">2027 — AUTONOMY</div>
-              <h4>Fully Autonomous Agent Mode</h4>
-              <p>Ghost AI operates independently on long-horizon tasks — researching, deciding, and executing without supervision.</p>
-            </div>
-          </div>
-          <div class="tl-item reveal reveal-d4">
-            <div class="tl-dot"><div class="tl-dot-inner" style="background:var(--ghost)"></div></div>
-            <div class="tl-content">
-              <div class="tl-year" style="color:var(--ghost)">2028+ — CONVERGENCE</div>
-              <h4>Human-AI Symbiosis</h4>
-              <p>Ghost AI evolves into a deeply personal digital intelligence — indistinguishable from an expert partner.</p>
-            </div>
-          </div>
-        </div>
+
+        <a href="#waitlist" class="btn-primary">Secure Your Spot</a>
       </div>
+    </div>
+  </section>
 
-      <div class="vision-right reveal">
-        <div class="bd-stamp">
-          <div class="bd-stamp-dot"></div>
-          <span class="bd-stamp-text">Blackdot</span>
-        </div>
-        <span class="section-tag">Future Vision</span>
-        <h2 class="section-h2">
-          Building intelligence<br/>that <em>grows</em> with you.
-        </h2>
+  <!-- =====================================================
+       WAITLIST SECTION
+  ===================================================== -->
+  <section id="waitlist">
+    <div class="container">
+      <div class="waitlist-box reveal">
+        <p class="section-label">/ Early Access</p>
+        <h2 class="section-title">Join the Waitlist</h2>
+        <div class="glow-line"></div>
         <p>
-          Ghost AI is not a product with a finish line. Blackdot is committed to
-          a continuous evolution model — releasing improvements every cycle, driven
-          by real usage, real feedback, and relentless research.
+          Be among the first to access Ghost AI when it launches.
+          Early members receive priority access, exclusive features,
+          and direct input into the product roadmap.
         </p>
-        <p>
-          Our vision is an AI system that understands the world the way you do:
-          with context, history, and intent. Not just a tool — a thinking partner
-          that becomes more valuable every single day.
-        </p>
-        <p>
-          We're building toward a future where Ghost AI anticipates your needs
-          before you articulate them — the next frontier of human-AI collaboration.
-        </p>
-        <div class="vision-tags">
-          <span class="vtag">Continuous Learning</span>
-          <span class="vtag">Federated Privacy</span>
-          <span class="vtag">Edge Intelligence</span>
-          <span class="vtag">Cross-Device Sync</span>
-          <span class="vtag">Ambient Computing</span>
-          <span class="vtag">Zero-Trust Security</span>
+
+        <div class="waitlist-form" id="waitlist-form">
+          <input
+            type="email"
+            class="waitlist-input"
+            id="waitlist-email"
+            placeholder="Enter your email address"
+            autocomplete="email"
+          />
+          <button class="waitlist-btn" id="waitlist-submit">Join Now</button>
         </div>
-        <div style="margin-top:2.5rem">
-          <button class="btn-primary" onclick="showPage('waitlist')">Be Part of the Journey</button>
+
+        <div class="waitlist-success" id="waitlist-success">
+          ✦ You're on the list — we'll be in touch soon.
         </div>
+
+        <p class="waitlist-note">No spam. No noise. Just Ghost.</p>
       </div>
     </div>
-  </div>
-  <div class="h-divider"></div>
+  </section>
+
+  <!-- =====================================================
+       FOOTER
+  ===================================================== -->
   <footer>
-    <div class="footer-left">
-      <div class="nav-logo-dot" style="width:14px;height:14px"></div>
-      <span class="footer-brand">BLACKDOT</span>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="nav-logo-text">Ghost AI</div>
+          <div class="nav-logo-sub" style="margin-top:4px">by Blackdot</div>
+        </div>
+
+        <p class="footer-copy">&copy; 2025 Blackdot. All rights reserved.</p>
+
+        <div class="footer-links">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Contact</a>
+        </div>
+      </div>
     </div>
-    <ul class="footer-links">
-      <li><a href="#" onclick="showPage('launch');return false">Launch</a></li>
-      <li><a href="#" onclick="showPage('waitlist');return false">Waitlist</a></li>
-    </ul>
-    <span class="footer-right">© 2025 Blackdot. All rights reserved.</span>
   </footer>
-</div>
 
-<!-- ════════════════════════════════════════
-     PAGE: LAUNCH
-════════════════════════════════════════ -->
-<div class="page" id="page-launch">
-  <div class="section">
-    <div class="launch-center">
-      <div class="bd-stamp reveal" style="justify-content:center">
-        <div class="bd-stamp-dot"></div>
-        <span class="bd-stamp-text">Blackdot</span>
-      </div>
-      <span class="section-tag reveal">Launch Status</span>
 
-      <div class="launch-status reveal" style="margin:1.5rem auto;display:inline-flex">
-        <div class="status-dot"></div>
-        ACTIVE DEVELOPMENT — PRE-LAUNCH PHASE
-      </div>
+  <!-- =====================================================
+       JAVASCRIPT — cursor.js (inline)
+  ===================================================== -->
+  <script>
+  /* =====================================================
+     CURSOR.JS — Custom glowing cursor with trailing ring
+  ===================================================== */
+  (function initCursor() {
+    const dot  = document.getElementById('cursor-dot');
+    const ring = document.getElementById('cursor-ring');
 
-      <h2 class="section-h2 reveal">
-        Ghost AI is<br/><span style="color:var(--ghost)">Coming Soon.</span>
-      </h2>
-      <p class="launch-sub reveal">
-        The countdown has started. Ghost AI launches in a matter of weeks.
-        Secure your place in the first wave of users before access closes.
-      </p>
+    let mouseX = 0, mouseY = 0;
+    let ringX  = 0, ringY  = 0;
 
-      <div class="countdown reveal" id="countdown">
-        <div class="cd-unit">
-          <div class="cd-box"><span class="cd-num" id="cd-days">00</span></div>
-          <span class="cd-label">Days</span>
-        </div>
-        <div class="cd-sep">:</div>
-        <div class="cd-unit">
-          <div class="cd-box"><span class="cd-num" id="cd-hours">00</span></div>
-          <span class="cd-label">Hours</span>
-        </div>
-        <div class="cd-sep">:</div>
-        <div class="cd-unit">
-          <div class="cd-box"><span class="cd-num" id="cd-mins">00</span></div>
-          <span class="cd-label">Minutes</span>
-        </div>
-        <div class="cd-sep">:</div>
-        <div class="cd-unit">
-          <div class="cd-box"><span class="cd-num" id="cd-secs">00</span></div>
-          <span class="cd-label">Seconds</span>
-        </div>
-      </div>
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      dot.style.left = mouseX + 'px';
+      dot.style.top  = mouseY + 'px';
+    });
 
-      <div class="reveal" style="margin-top:1rem">
-        <button class="btn-primary" onclick="showPage('waitlist')">Join the Waitlist Now</button>
-      </div>
+    // Smooth trailing ring animation
+    function animateRing() {
+      ringX += (mouseX - ringX) * 0.12;
+      ringY += (mouseY - ringY) * 0.12;
+      ring.style.left = ringX + 'px';
+      ring.style.top  = ringY + 'px';
+      requestAnimationFrame(animateRing);
+    }
 
-      <p style="margin-top:2rem;font-family:'Share Tech Mono',monospace;font-size:.72rem;letter-spacing:.15em;color:var(--muted)" class="reveal">
-        CLASSIFIED — BLACKDOT INTERNAL RELEASE TRACKER — GHOST AI v1.0
-      </p>
-    </div>
-  </div>
-  <div class="h-divider"></div>
-  <footer>
-    <div class="footer-left">
-      <div class="nav-logo-dot" style="width:14px;height:14px"></div>
-      <span class="footer-brand">BLACKDOT</span>
-    </div>
-    <ul class="footer-links">
-      <li><a href="#" onclick="showPage('waitlist');return false">Waitlist</a></li>
-    </ul>
-    <span class="footer-right">© 2025 Blackdot. All rights reserved.</span>
-  </footer>
-</div>
+    animateRing();
 
-<!-- ════════════════════════════════════════
-     PAGE: WAITLIST
-════════════════════════════════════════ -->
-<div class="page" id="page-waitlist">
-  <div class="section" style="min-height:calc(100vh - 80px);display:flex;align-items:center;justify-content:center;flex-direction:column">
-    <!-- Bg glow -->
-    <div style="position:absolute;width:600px;height:600px;background:radial-gradient(ellipse,rgba(0,229,255,0.06) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none"></div>
-    <div style="position:absolute;width:400px;height:400px;background:radial-gradient(ellipse,rgba(168,85,247,0.06) 0%,transparent 70%);top:45%;left:50%;transform:translate(-50%,-50%);pointer-events:none"></div>
+    // Scale ring on hover targets
+    const hoverTargets = document.querySelectorAll('a, button, .feature-card, .pillar');
+    hoverTargets.forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        ring.style.width  = '56px';
+        ring.style.height = '56px';
+        ring.style.borderColor = 'var(--cyan)';
+      });
+      el.addEventListener('mouseleave', () => {
+        ring.style.width  = '36px';
+        ring.style.height = '36px';
+        ring.style.borderColor = 'var(--cyan-border)';
+      });
+    });
 
-    <div class="waitlist-center">
-      <div class="bd-stamp reveal" style="justify-content:center">
-        <div class="bd-stamp-dot"></div>
-        <span class="bd-stamp-text">Blackdot</span>
-      </div>
-      <span class="section-tag reveal">Early Access</span>
-      <h2 class="section-h2 reveal">
-        Get <em>first access</em><br/>to Ghost AI.
-      </h2>
-      <p class="reveal">
-        Join thousands of early adopters waiting to experience the future of
-        intelligent computing. Enter your email and we'll notify you the moment
-        Ghost AI opens its doors.
-      </p>
+    // Hide cursor when leaving window
+    document.addEventListener('mouseleave', () => {
+      dot.style.opacity  = '0';
+      ring.style.opacity = '0';
+    });
+    document.addEventListener('mouseenter', () => {
+      dot.style.opacity  = '1';
+      ring.style.opacity = '1';
+    });
+  })();
+  </script>
 
-      <div class="waitlist-form reveal">
-        <input class="wf-input" type="email" id="wl-email" placeholder="your@email.com" autocomplete="off"/>
-        <button class="wf-btn" onclick="submitWaitlist()">Request Access</button>
-      </div>
-      <div id="wl-success" class="wl-success">
-        ✓ &nbsp; YOU'RE ON THE LIST — WE'LL BE IN TOUCH SOON.
-      </div>
-      <p class="waitlist-note reveal">No spam. No noise. Just a launch notification when the time comes.</p>
 
-      <div class="waitlist-perks reveal">
-        <div class="perk"><div class="perk-dot"></div>First access to Ghost AI v1</div>
-        <div class="perk"><div class="perk-dot"></div>Exclusive beta features</div>
-        <div class="perk"><div class="perk-dot"></div>Founding member badge</div>
-        <div class="perk"><div class="perk-dot"></div>Priority support</div>
-        <div class="perk"><div class="perk-dot"></div>Zero cost during beta</div>
-      </div>
+  <!-- =====================================================
+       JAVASCRIPT — particles.js (inline)
+  ===================================================== -->
+  <script>
+  /* =====================================================
+     PARTICLES.JS — Animated particle background on canvas
+  ===================================================== */
+  (function initParticles() {
+    const canvas = document.getElementById('particle-canvas');
+    const ctx    = canvas.getContext('2d');
 
-      <!-- Counter -->
-      <div style="margin-top:3rem;padding:1.5rem 2.5rem;border:1px solid var(--border);background:var(--card);display:inline-block" class="reveal">
-        <div style="font-family:'Share Tech Mono',monospace;font-size:.72rem;letter-spacing:.2em;color:var(--muted);margin-bottom:.4rem">WAITLIST MEMBERS</div>
-        <div style="font-family:'Orbitron',monospace;font-size:2.4rem;font-weight:700;color:var(--cyan);text-shadow:0 0 20px var(--cyan-glow)" id="wl-count">2,847</div>
-        <div style="font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:.15em;color:var(--muted2)">and growing every hour</div>
-      </div>
-    </div>
-  </div>
-  <div class="h-divider"></div>
-  <footer>
-    <div class="footer-left">
-      <div class="nav-logo-dot" style="width:14px;height:14px"></div>
-      <span class="footer-brand">BLACKDOT</span>
-    </div>
-    <ul class="footer-links">
-      <li><a href="#" onclick="showPage('home');return false">Home</a></li>
-      <li><a href="#" onclick="showPage('about');return false">About</a></li>
-      <li><a href="#" onclick="showPage('ghostai');return false">Ghost AI</a></li>
-    </ul>
-    <span class="footer-right">© 2025 Blackdot. All rights reserved.</span>
-  </footer>
-</div>
+    let W, H, particles = [], animFrame;
 
-<!-- ════════════════════════════════════════
-     SCRIPTS
-════════════════════════════════════════ -->
-<script>
-/* ── CURSOR ── */
-const cur = document.getElementById('cur');
-const curR = document.getElementById('cur-r');
-let mx=0,my=0,rx=0,ry=0;
-document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
-(function trackRing(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(trackRing)})();
-document.querySelectorAll('a,button').forEach(el=>{
-  el.addEventListener('mouseenter',()=>{cur.style.width='16px';cur.style.height='16px';curR.style.width='52px';curR.style.height='52px';curR.style.borderColor='rgba(0,229,255,0.7)'});
-  el.addEventListener('mouseleave',()=>{cur.style.width='9px';cur.style.height='9px';curR.style.width='34px';curR.style.height='34px';curR.style.borderColor='rgba(0,229,255,0.4)'});
-});
+    const CONFIG = {
+      count:         90,
+      speed:         0.3,
+      radius:        1.2,
+      lineDistance:  140,
+      color:         '0, 245, 255',
+      mouseRadius:   120,
+      mouseRepel:    false,
+    };
 
-/* ── CANVAS PARTICLES ── */
-const canvas = document.getElementById('bgc');
-const ctx = canvas.getContext('2d');
-let W,H,particles=[];
-function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight}
-resize(); window.addEventListener('resize',resize);
-for(let i=0;i<90;i++) particles.push({
-  x:Math.random()*2000,y:Math.random()*1200,
-  vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,
-  r:Math.random()*1.3+.3,
-  c:Math.random()>.6?'rgba(168,85,247,':'rgba(0,229,255,'
-});
-function drawParticles(){
-  ctx.clearRect(0,0,W,H);
-  particles.forEach(p=>{
-    p.x+=p.vx; p.y+=p.vy;
-    if(p.x<0)p.x=W; if(p.x>W)p.x=0;
-    if(p.y<0)p.y=H; if(p.y>H)p.y=0;
-    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-    ctx.fillStyle=p.c+'0.7)';ctx.fill();
-  });
-  // connections
-  for(let i=0;i<particles.length;i++){
-    for(let j=i+1;j<particles.length;j++){
-      const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y;
-      const dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<120){
-        ctx.beginPath();
-        ctx.moveTo(particles[i].x,particles[i].y);
-        ctx.lineTo(particles[j].x,particles[j].y);
-        const alpha=(1-dist/120)*0.18;
-        ctx.strokeStyle=`rgba(0,229,255,${alpha})`;
-        ctx.lineWidth=.5;ctx.stroke();
+    let mouse = { x: -9999, y: -9999 };
+
+    window.addEventListener('mousemove', e => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+
+    function createParticle() {
+      return {
+        x:  Math.random() * W,
+        y:  Math.random() * H,
+        vx: (Math.random() - 0.5) * CONFIG.speed,
+        vy: (Math.random() - 0.5) * CONFIG.speed,
+        r:  Math.random() * CONFIG.radius + 0.5,
+        a:  Math.random() * 0.5 + 0.1,
+      };
+    }
+
+    function init() {
+      particles = [];
+      for (let i = 0; i < CONFIG.count; i++) {
+        particles.push(createParticle());
       }
     }
-  }
-  requestAnimationFrame(drawParticles);
-}
-drawParticles();
 
-/* ── PAGE ROUTING ── */
-const pages = ['home','about','ghostai','features','vision','launch','waitlist'];
-function showPage(id){
-  const flash = document.getElementById('flash');
-  flash.style.opacity='0.12';
-  setTimeout(()=>{
-    flash.style.opacity='0';
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    document.getElementById('page-'+id).classList.add('active');
-    document.querySelectorAll('.nav-links a').forEach(a=>{
-      a.classList.toggle('active-link',a.dataset.page===id);
+    function drawParticle(p) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${CONFIG.color}, ${p.a})`;
+      ctx.fill();
+    }
+
+    function drawLine(a, b, alpha) {
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = `rgba(${CONFIG.color}, ${alpha * 0.35})`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    function update(p) {
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // Wrap around edges
+      if (p.x < 0) p.x = W;
+      if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H;
+      if (p.y > H) p.y = 0;
+    }
+
+    function loop() {
+      ctx.clearRect(0, 0, W, H);
+
+      for (let i = 0; i < particles.length; i++) {
+        update(particles[i]);
+        drawParticle(particles[i]);
+
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < CONFIG.lineDistance) {
+            const alpha = 1 - dist / CONFIG.lineDistance;
+            drawLine(particles[i], particles[j], alpha);
+          }
+        }
+      }
+
+      animFrame = requestAnimationFrame(loop);
+    }
+
+    resize();
+    init();
+    loop();
+
+    window.addEventListener('resize', () => {
+      resize();
+      init();
     });
-    window.scrollTo(0,0);
-    setTimeout(triggerReveal,100);
-  },120);
-}
-function triggerReveal(){
-  document.querySelectorAll('.page.active .reveal').forEach((el,i)=>{
-    setTimeout(()=>el.classList.add('visible'),i*60);
-  });
-}
-triggerReveal();
+  })();
+  </script>
 
-/* ── SCROLL REVEAL ── */
-const observer = new IntersectionObserver(entries=>{
-  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')});
-},{threshold:.12});
-document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 
-/* ── COUNTDOWN ── */
-const launchDate = new Date();
-launchDate.setDate(launchDate.getDate() + 47);
-launchDate.setHours(0,0,0,0);
-function updateCountdown(){
-  const now = new Date();
-  let diff = launchDate - now;
-  if(diff<0)diff=0;
-  const d=Math.floor(diff/86400000);
-  const h=Math.floor((diff%86400000)/3600000);
-  const m=Math.floor((diff%3600000)/60000);
-  const s=Math.floor((diff%60000)/1000);
-  document.getElementById('cd-days').textContent=String(d).padStart(2,'0');
-  document.getElementById('cd-hours').textContent=String(h).padStart(2,'0');
-  document.getElementById('cd-mins').textContent=String(m).padStart(2,'0');
-  document.getElementById('cd-secs').textContent=String(s).padStart(2,'0');
-}
-updateCountdown(); setInterval(updateCountdown,1000);
+  <!-- =====================================================
+       JAVASCRIPT — animations.js (inline)
+  ===================================================== -->
+  <script>
+  /* =====================================================
+     ANIMATIONS.JS — Scroll reveal + Navbar scroll effect
+  ===================================================== */
+  (function initAnimations() {
 
-/* ── WAITLIST ── */
-function submitWaitlist(){
-  const email = document.getElementById('wl-email').value.trim();
-  if(!email||!email.includes('@')){
-    document.getElementById('wl-email').style.borderColor='rgba(255,51,102,0.6)';
-    setTimeout(()=>document.getElementById('wl-email').style.borderColor='rgba(0,229,255,0.2)',1500);
-    return;
-  }
-  document.getElementById('wl-success').style.display='block';
-  document.querySelector('.waitlist-form').style.opacity='.4';
-  document.querySelector('.waitlist-form').style.pointerEvents='none';
-  // bump count
-  const c = document.getElementById('wl-count');
-  let n = parseInt(c.textContent.replace(',',''));
-  const tick = setInterval(()=>{n++;c.textContent=n.toLocaleString();if(n>=2848)clearInterval(tick)},80);
-}
-document.getElementById('wl-email').addEventListener('keydown',e=>{if(e.key==='Enter')submitWaitlist()});
+    // ----- NAVBAR scroll class -----
+    const navbar = document.getElementById('navbar');
 
-/* ── COUNTER ANIMATION ── */
-function animateCounter(el,target,duration){
-  let start=0,startTime=null;
-  function step(ts){
-    if(!startTime)startTime=ts;
-    const progress=Math.min((ts-startTime)/duration,1);
-    el.textContent=Math.floor(progress*target).toLocaleString();
-    if(progress<1)requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-const countEl = document.getElementById('wl-count');
-const countObs = new IntersectionObserver(entries=>{
-  if(entries[0].isIntersecting){animateCounter(countEl,2847,2000);countObs.disconnect();}
-});
-countObs.observe(countEl);
-</script>
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 60) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    }, { passive: true });
+
+    // ----- MOBILE MENU -----
+    const hamburger   = document.getElementById('nav-hamburger');
+    const mobileMenu  = document.getElementById('mobile-menu');
+    const mobileClose = document.getElementById('mobile-close');
+    const mobileLinks = document.querySelectorAll('.mobile-link');
+
+    hamburger.addEventListener('click', () => {
+      mobileMenu.classList.add('open');
+    });
+
+    mobileClose.addEventListener('click', () => {
+      mobileMenu.classList.remove('open');
+    });
+
+    mobileLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+      });
+    });
+
+    // ----- SCROLL REVEAL -----
+    const revealClasses = ['.reveal', '.reveal-left', '.reveal-right'];
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, {
+      threshold: 0.12,
+      rootMargin: '0px 0px -60px 0px',
+    });
+
+    revealClasses.forEach(cls => {
+      document.querySelectorAll(cls).forEach(el => observer.observe(el));
+    });
+
+  })();
+  </script>
+
+
+  <!-- =====================================================
+       JAVASCRIPT — countdown.js (inline)
+  ===================================================== -->
+  <script>
+  /* =====================================================
+     COUNTDOWN.JS — Countdown timer to launch date
+  ===================================================== */
+  (function initCountdown() {
+
+    // ---- SET YOUR LAUNCH DATE HERE (YYYY, MM-1, DD, HH, MM, SS) ----
+    const LAUNCH_DATE = new Date(2025, 11, 31, 23, 59, 59); // Dec 31, 2025
+
+    const elDays  = document.getElementById('cd-days');
+    const elHours = document.getElementById('cd-hours');
+    const elMins  = document.getElementById('cd-mins');
+    const elSecs  = document.getElementById('cd-secs');
+
+    function pad(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    function animateFlip(el) {
+      el.classList.add('flip');
+      setTimeout(() => el.classList.remove('flip'), 250);
+    }
+
+    let prevSecs = -1;
+
+    function tick() {
+      const now   = new Date();
+      const diff  = LAUNCH_DATE - now;
+
+      if (diff <= 0) {
+        elDays.textContent  = '00';
+        elHours.textContent = '00';
+        elMins.textContent  = '00';
+        elSecs.textContent  = '00';
+        return;
+      }
+
+      const days  = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const mins  = Math.floor((diff / (1000 * 60)) % 60);
+      const secs  = Math.floor((diff / 1000) % 60);
+
+      elDays.textContent  = pad(days);
+      elHours.textContent = pad(hours);
+      elMins.textContent  = pad(mins);
+
+      if (secs !== prevSecs) {
+        elSecs.textContent = pad(secs);
+        animateFlip(elSecs);
+
+        if (secs === 59) animateFlip(elMins);
+        if (secs === 59 && mins === 59) animateFlip(elHours);
+        if (secs === 59 && mins === 59 && hours === 23) animateFlip(elDays);
+
+        prevSecs = secs;
+      }
+    }
+
+    tick();
+    setInterval(tick, 1000);
+
+  })();
+  </script>
+
+
+  <!-- =====================================================
+       JAVASCRIPT — waitlist.js (inline)
+  ===================================================== -->
+  <script>
+  /* =====================================================
+     WAITLIST.JS — Email form submission handler
+  ===================================================== */
+  (function initWaitlist() {
+
+    const form    = document.getElementById('waitlist-form');
+    const emailEl = document.getElementById('waitlist-email');
+    const btn     = document.getElementById('waitlist-submit');
+    const success = document.getElementById('waitlist-success');
+
+    function isValidEmail(v) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    }
+
+    btn.addEventListener('click', () => {
+      const email = emailEl.value.trim();
+
+      if (!email) {
+        emailEl.style.outline = '1px solid rgba(255,80,80,0.6)';
+        emailEl.placeholder   = 'Please enter your email';
+        return;
+      }
+
+      if (!isValidEmail(email)) {
+        emailEl.style.outline = '1px solid rgba(255,80,80,0.6)';
+        emailEl.placeholder   = 'Enter a valid email address';
+        emailEl.value         = '';
+        return;
+      }
+
+      emailEl.style.outline = '';
+
+      // Simulate submission — replace with real API call as needed
+      console.info('[Ghost AI Waitlist] Email submitted:', email);
+
+      form.style.display    = 'none';
+      success.classList.add('show');
+    });
+
+    emailEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') btn.click();
+    });
+
+    emailEl.addEventListener('focus', () => {
+      emailEl.style.outline = '';
+    });
+
+  })();
+  </script>
+
 </body>
 </html>
